@@ -1,0 +1,35 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+data=pd.read_csv(r"D:\Time Series\Simple Moving Average.csv")
+data
+plt.plot(data.Year,data.Production)
+plt.show()
+
+#Simple Moving Average
+sma=data.Production.rolling(window=3).mean()
+sma
+
+plt.plot(data.Year,sma,label="3 year Simple Moving Average")
+plt.show()
+
+#Weighted Moving Average
+#Lambda function is to compute dot product between production and weights with rolling window.
+weights = [3,2,1] 
+weights=np.asarray(weights)# Converting data to numpy array 
+wma = data.Production.rolling(3).apply(lambda production: np.dot(production, weights)/weights.sum(), raw=True)
+wma
+
+plt.plot(data.Year,wma,label="3 year weighted moving average")
+plt.show()
+
+#Comparision
+plt.plot(data['Production'],label="Production")
+plt.plot(wma, label="3 year weighted moving average")
+plt.plot(sma, label="3 year Simple Moving Average")
+plt.xlabel("Year")
+plt.ylabel("Production")
+plt.legend()
+plt.show()
