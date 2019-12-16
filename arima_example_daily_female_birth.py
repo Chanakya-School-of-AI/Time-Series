@@ -82,7 +82,7 @@ print(model_fit.summary())
 # we can see in model summary that the AIC and BIC errors are quite high
 # so lets be more conservative and chose the lags which are significantly above the p-value zone.
 # now the orders become p = 1 and q = 1 with d = 0.
-model = ARIMA(series, order=(2,0,2))
+model = ARIMA(series, order=(1,0,1))
 model_fit = model.fit()
 print(model_fit.summary())
 
