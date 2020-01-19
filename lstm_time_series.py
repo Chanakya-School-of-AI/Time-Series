@@ -11,6 +11,9 @@ from keras.layers import Dense
 from keras.layers import LSTM
 from keras.layers import Dropout
 
+def parser(x):
+    return datetime.strptime(x,'%d-%m-%Y %H:%M')
+
 data=pd.read_csv(r"D:\occupancy_data\multitime.csv",index_col=0,parse_dates=[0],date_parser=parser)
 data
 
