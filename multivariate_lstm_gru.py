@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from math import sqrt
 from numpy import concatenate
@@ -18,6 +19,22 @@ def parser(x):
 
 dataset=pd.read_csv(r"D:\occupancy_data\multitime.csv",index_col=0,parse_dates=[0],date_parser=parser)
 dataset.head(10)
+
+groups=[0,1,2,3,4]
+i=1
+
+#Plots
+plt.figure()
+for group in groups:
+    plt.subplot(len(groups),1,i)
+    plt.plot(values[:,group])
+    plt.title(dataset.columns[group],y=0.5,loc='right')
+    i+=1
+plt.show()
+
+#Plots
+sns.pairplot(dataset[dataset.columns[0:]])
+plt.show()
 
 values=np.array(dataset)
 
@@ -55,6 +72,7 @@ X_test, y_test = np.array(X_test), np.array(y_test)
 X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
 
 ###LSTM###
+
 regressor_lstm = Sequential()
 
 regressor_lstm.add(LSTM(50, return_sequences=True,input_shape=(X_train.shape[1], X_train.shape[2])))
@@ -70,8 +88,8 @@ regressor_lstm.summary()
 history_lstm = regressor_lstm.fit(X_train, y_train, epochs=1, batch_size=50, validation_data=(X_test,y_test),  shuffle=False)
 
 ###GRU###
-regressor_gru=Sequential()
 
+regressor_gru=Sequential()
 regressor_gru.add(GRU(50, return_sequences=True,input_shape=(X_train.shape[1], X_train.shape[2])))
 regressor_gru.add(GRU(units=20, return_sequences=True))
 regressor_gru.add(GRU(units=20))
@@ -88,10 +106,13 @@ history_gru = regressor_gru.fit(X_train, y_train, epochs=1, batch_size=50, valid
 plt.figure(figsize=(10,6),dpi=100)
 plt.plot(history_lstm.history['loss'], label='LSTM train', color='red')
 plt.plot(history_lstm.history['val_loss'], label='LSTM test', color= 'green')
+
 plt.plot(history_gru.history['loss'], label='GRU train', color='brown')
 plt.plot(history_gru.history['val_loss'], label='GRU test', color='blue')
+
 plt.xlabel('epochs')
 plt.ylabel('loss')
+
 plt.legend()
 plt.title('training and validation loss')
 plt.show()
