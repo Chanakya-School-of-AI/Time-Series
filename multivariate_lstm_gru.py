@@ -1,40 +1,18 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 
-from math import sqrt
-from numpy import concatenate
-from pandas import concat
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
 from pandas import datetime
 from keras.models import Sequential
-from keras.layers import Dense
+from keras.layers import Dense,Dropout
 from keras.layers import LSTM,GRU
-from keras.layers import Dropout
 
 def parser(x):
     return datetime.strptime(x,'%d-%m-%Y %H:%M')
 
 dataset=pd.read_csv(r"D:\occupancy_data\multitime.csv",index_col=0,parse_dates=[0],date_parser=parser)
 dataset.head(10)
-
-groups=[0,1,2,3,4]
-i=1
-
-#Plots
-plt.figure()
-for group in groups:
-    plt.subplot(len(groups),1,i)
-    plt.plot(values[:,group])
-    plt.title(dataset.columns[group],y=0.5,loc='right')
-    i+=1
-plt.show()
-
-#Plots
-sns.pairplot(dataset[dataset.columns[0:]])
-plt.show()
 
 values=np.array(dataset)
 
@@ -45,74 +23,63 @@ scaled=scaler.fit_transform(values)
 scaled=pd.DataFrame(scaled)
 scaled.head(10)
 
-train=scaled[:int(0.8*(len(scaled)))]
-train.shape
-train=np.array(train)
+data=np.array(scaled)
 
-valid=scaled[int(0.8*(len(scaled))):]
-valid.shape
-valid=np.array(valid)
+X = []
+y = []
+for i in range(1000, len(scaled)):
+    X.append(data[i-1000:i, 0:])#0:for all col
+    y.append(data[i, 0:])
 
-X_train = []
-y_train = []
-for i in range(200, len(train)):
-    X_train.append(train[i-200:i, 0])
-    y_train.append(train[i, 0])
-
-X_train, y_train = np.array(X_train), np.array(y_train)
-X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
-
-X_test = []
-y_test = []
-for i in range(200, len(valid)):
-    X_test.append(valid[i-200:i, 0])
-    y_test.append(valid[i, 0])
-
-X_test, y_test = np.array(X_test), np.array(y_test)
-X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+X, y = np.array(X), np.array(y)
+X = np.reshape(X, (X.shape[0], X.shape[1],6))
 
 ###LSTM###
 
 regressor_lstm = Sequential()
-
-regressor_lstm.add(LSTM(50, return_sequences=True,input_shape=(X_train.shape[1], X_train.shape[2])))
-regressor_lstm.add(LSTM(units=20, return_sequences=True))
-regressor_lstm.add(LSTM(units=20))
-regressor_lstm.add(Dense(units=1))
-
-regressor_lstm.compile(loss='mae', optimizer='adam')
-
+regressor_lstm.add(LSTM(units = 128, return_sequences = True, input_shape = (X.shape[1], 6)))
+regressor_lstm.add(LSTM(units = 128, return_sequences = True))
+regressor_lstm.add(LSTM(units = 128, return_sequences = True))
+regressor_lstm.add(LSTM(units = 128))
+regressor_lstm.add(Dense(units = 6))
+regressor_lstm.compile(loss='mse', optimizer='adam',metrics=['accuracy'])
 regressor_lstm.summary()
 
 #Fitting the model
-history_lstm = regressor_lstm.fit(X_train, y_train, epochs=1, batch_size=50, validation_data=(X_test,y_test),  shuffle=False)
+history_lstm = regressor_lstm.fit(X, y, epochs=5, batch_size=800, validation_split=0.3,  shuffle=False)
 
 ###GRU###
 
-regressor_gru=Sequential()
-regressor_gru.add(GRU(50, return_sequences=True,input_shape=(X_train.shape[1], X_train.shape[2])))
-regressor_gru.add(GRU(units=20, return_sequences=True))
-regressor_gru.add(GRU(units=20))
-regressor_gru.add(Dense(units=1))
+regressor_gru = Sequential()
 
-regressor_gru.compile(loss='mae', optimizer='adam')
+regressor_gru.add(LSTM(units = 50, return_sequences = True, input_shape = (X.shape[1], 5)))
+regressor_gru.add(Dropout(0.2))
+
+regressor_gru.add(LSTM(units = 50, return_sequences = True))
+regressor_gru.add(Dropout(0.2))
+
+regressor_gru.add(LSTM(units = 50, return_sequences = True))
+regressor_gru.add(Dropout(0.2))
+
+regressor_gru.add(LSTM(units = 50))
+regressor_gru.add(Dropout(0.2))
+
+regressor_gru.add(Dense(units = 5))
+
+regressor_gru.compile(loss='mse', optimizer='adam',metrics=['accuracy'])
 
 regressor_gru.summary()
 
 #Fitting the model
-history_gru = regressor_gru.fit(X_train, y_train, epochs=1, batch_size=50, validation_data=(X_test,y_test),  shuffle=False)
+history_gru = regressor_gru.fit(X, y, epochs=100, batch_size=40, validation_split=0.25,  shuffle=False)
 
 #plotting the loss
-plt.figure(figsize=(10,6),dpi=100)
-plt.plot(history_lstm.history['loss'], label='LSTM train', color='red')
-plt.plot(history_lstm.history['val_loss'], label='LSTM test', color= 'green')
-
-plt.plot(history_gru.history['loss'], label='GRU train', color='brown')
-plt.plot(history_gru.history['val_loss'], label='GRU test', color='blue')
-
-plt.xlabel('epochs')
-plt.ylabel('loss')
-
+plt.plot(history_lstm.history['accuracy'],label='LSTM train',color='red')
+plt.plot(history_lstm.history['val_accuracy'],label='LSTM test',color='blue')
+plt.plot(history_gru.history['accuracy'],label='LSTM train',color='green')
+plt.plot(history_gru.history['val_accuracy'],label='LSTM test',color='black')
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
 plt.legend()
-plt.title('training and validation loss')
 plt.show()
